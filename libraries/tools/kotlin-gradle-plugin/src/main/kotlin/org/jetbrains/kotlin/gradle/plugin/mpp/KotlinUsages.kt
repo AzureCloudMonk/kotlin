@@ -65,19 +65,27 @@ object KotlinUsages {
         override fun execute(details: MultipleCandidatesDetails<Usage?>) = with(details) {
             val candidateNames = candidateValues.map { it?.name }.toSet()
 
+            fun candidateByName(name: String?) = candidateValues.single { it?.name == name }!!
+
             // if both API and runtime artifacts are chosen according to the compatibility rules, then
             // the consumer requested nothing specific, so provide them with the runtime variant, which is more complete:
             if (candidateNames.filterNotNull().toSet() == setOf(KOTLIN_RUNTIME, KOTLIN_API)) {
-                details.closestMatch(candidateValues.single { it?.name == KOTLIN_RUNTIME }!!)
+                closestMatch(candidateByName(KOTLIN_RUNTIME))
             }
             if (JAVA_API in candidateNames && JAVA_RUNTIME_JARS in candidateNames && values.none { it in candidateNames }) {
-                details.closestMatch(candidateValues.single { it?.name == JAVA_RUNTIME_JARS }!!)
+                when {
+                    isGradleVersionAtLeast(4, 1) && consumerValue?.name == JAVA_API -> candidateByName(JAVA_API)
+                    else -> closestMatch(candidateByName(JAVA_RUNTIME_JARS))
+                }
             }
             if (JAVA_API in candidateNames && JAVA_RUNTIME in candidateNames && values.none { it in candidateNames }) {
-                details.closestMatch(candidateValues.single { it?.name == JAVA_RUNTIME }!!)
+                when {
+                    isGradleVersionAtLeast(4, 1) && consumerValue?.name == JAVA_API -> candidateByName(JAVA_API)
+                    else -> closestMatch(candidateByName(JAVA_RUNTIME))
+                }
             }
             if (JAVA_RUNTIME_CLASSES in candidateNames && JAVA_RUNTIME_RESOURCES in candidateNames && KOTLIN_RUNTIME in candidateNames) {
-                closestMatch(candidateValues.single { it?.name == KOTLIN_RUNTIME }!!)
+                closestMatch(candidateByName(KOTLIN_RUNTIME))
             }
         }
     }
